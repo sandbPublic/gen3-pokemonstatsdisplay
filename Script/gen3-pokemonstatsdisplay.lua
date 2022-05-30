@@ -1,4 +1,4 @@
-local versions = {
+local VERSIONS <const> = {
     "POKEMON RUBY",
     "POKEMON SAPP",
     "POKEMON FIRE",
@@ -6,7 +6,7 @@ local versions = {
     "POKEMON EMER"
 }
 
-local languages = {
+local LANGUAGES <const> = {
     "Unknown",
     "Deutsch",
     "French",
@@ -30,7 +30,7 @@ local function comparebytetostring(b, s)
 end
 
 local function checkversion(version)
-	for i,v in ipairs(versions) do
+	for i,v in ipairs(VERSIONS) do
 		if comparebytetostring(version,v) then
 			return i
 		end
@@ -46,7 +46,8 @@ if vindex==nil then
 	return
 end
 
-print(string.format("Version: %s", versions[vindex]))
+print(string.format("Version: %s", VERSIONS[vindex]))
+
 local lan = memory.readbyte(0x080000AF)
 local lindex = 1
 
@@ -64,7 +65,7 @@ elseif lan==0x4A then
 	lindex = 7
 end
 
-print(string.format("Language: %s", languages[lindex]))
+print(string.format("Language: %s", LANGUAGES[lindex]))
 
 if lindex == 1 then
 	print("This language is not currently supported")
@@ -105,7 +106,7 @@ if vindex == 5 then  -- E
 	end
 end
 
-local startvalue=0x83ED --insert the first value of RNG
+local RNG_START <const> =0x83ED --insert the first value of RNG
 
 -- These are all the possible key names: [keys]
 -- backspace, tab, enter, shift, control, alt, pause, capslock, escape,
@@ -116,22 +117,32 @@ local startvalue=0x83ED --insert the first value of RNG
 -- [/keys]
 -- Key names must be in quotes.
 -- Key names are case sensitive.
-local key={"9", "8", "7"}
+local HOTKEYS <const> ={
+    CHANGE_VIEW="9", 
+    INCREMENT="8", 
+    DECREMENT="7"
+}
 
 -- It is not necessary to change anything beyond this point.
 
 --for different display modes
-local status=1
+local viewmode=1
+local VIEW_MODES <const> = {
+    PLAYER=1,
+    ENEMY=2,
+    RNG=3
+}
+
 local substatus={1,1,1}
 
 local tabl={}
 local prev={}
 
-local xfix=0 --x position of display handle
-local yfix=65 --y position of display handle
+local X_FIX <const> =0 --x position of display handle
+local Y_FIX <const> =65 --y position of display handle
 
-local xfix2=105 --x position of 2nd handle
-local yfix2=0 --y position of 2nd handle
+local X_FIX_2 <const> =105 --x position of 2nd handle
+local Y_FIX_2 <const> =0 --y position of 2nd handle
 
 --for different game versions
 --1: Ruby/Sapphire U
@@ -143,31 +154,22 @@ local yfix2=0 --y position of 2nd handle
 --7: Ruby/Sapphire I
 --8: FireRed/LeafGreen S
 
-local gamename={
-    "Ruby/Sapphire U", 
-    "Emerald U", 
-    "FireRed/LeafGreen U", 
-    "Ruby/Sapphire J", 
-    "Emerald J", 
-    "FireRed/LeafGreen J (1360)", 
-    "Ruby/Sapphire I"
-}
-
 --game dependent
 
-local pstats={0x3004360, 0x20244EC, 0x2024284, 0x3004290, 0x2024190, 0x20241E4, 0x3004370, 0x2024284}
-local estats={0x30045C0, 0x2024744, 0x202402C, 0x30044F0, 0x0000000, 0x2023F8C, 0x30045D0, 0x202402C}
+local stats={
+    {0x3004360, 0x20244EC, 0x2024284, 0x3004290, 0x2024190, 0x20241E4, 0x3004370, 0x2024284}, -- player
+    {0x30045C0, 0x2024744, 0x202402C, 0x30044F0, 0x0000000, 0x2023F8C, 0x30045D0, 0x202402C}  -- enemy
+}
 local rng   ={0x3004818, 0x3005D80, 0x3005000, 0x3004748, 0x0000000, 0x3005040, 0} --0X3004FA0
 local rng2  ={0x0000000, 0x0000000, 0x20386D0, 0x0000000, 0x0000000, 0x203861C, 0}
 
 
 --HP, Atk, Def, Spd, SpAtk, SpDef
-local statcolor = {"yellow", "red", "blue", "green", "magenta", "cyan"}
-
+local STAT_COLOR <const> = {"yellow", "red", "blue", "green", "magenta", "cyan"}
 
 dofile "tables.lua"
 
-local last=0
+local last_rng=0
 
 local bnd,br,bxr=bit.band,bit.bor,bit.bxor
 local rshift, lshift=bit.rshift, bit.lshift
@@ -244,24 +246,24 @@ local function fn()
 --*********
     tabl=input.get()
 
-    if tabl[key[1]] and not prev[key[1]] then
-        status=status+1
-        if status==3 then
-            status=1
+    if tabl[HOTKEYS.CHANGE_VIEW] and not prev[HOTKEYS.CHANGE_VIEW] then
+        viewmode=viewmode+1
+        if viewmode > VIEW_MODES.ENEMY then
+            viewmode = VIEW_MODES.PLAYER
         end
     end
 
-    if tabl[key[2]] and not prev[key[2]] then
-        substatus[status]=substatus[status]+1
-        if substatus[status]==7 then
-            substatus[status]=1
+    if tabl[HOTKEYS.INCREMENT] and not prev[HOTKEYS.INCREMENT] then
+        substatus[viewmode]=substatus[viewmode]+1
+        if substatus[viewmode] > 6 then
+            substatus[viewmode]=1
         end
     end
 
-    if tabl[key[3]] and not prev[key[3]] then
-        substatus[status]=substatus[status]-1
-        if substatus[status]==0 then
-            substatus[status]=6
+    if tabl[HOTKEYS.DECREMENT] and not prev[HOTKEYS.DECREMENT] then
+        substatus[viewmode]=substatus[viewmode]-1
+        if substatus[viewmode] < 1 then
+            substatus[viewmode]=6
         end
     end
 
@@ -272,13 +274,8 @@ local function fn()
     -- gui.text(200,20,substatus[2])
 
     -- now for display
-    if status==1 or status==2 then --status 1 or 2
-
-        if status==1 then
-            start=pstats[game]+100*(substatus[1]-1)
-        else
-            start=estats[game]+100*(substatus[2]-1)
-        end
+    if viewmode==VIEW_MODES.PLAYER or viewmode==VIEW_MODES.ENEMY then
+        local start=stats[viewmode][game]+100*(substatus[viewmode]-1)
 
         local personality=mdword(start)
         local trainerid=mdword(start+4)
@@ -353,54 +350,54 @@ local function fn()
         local pp3=getbits(attack3,16,8)
         local pp4=getbits(attack3,24,8)
 
-        gui.text(xfix+15,yfix-8, "Stat")
-        gui.text(xfix+35,yfix-8, "IV")
-        gui.text(xfix+50,yfix-8, "EV")
-        gui.text(xfix+65,yfix-8, "Nat")
+        gui.text(X_FIX+15,Y_FIX-8, "Stat")
+        gui.text(X_FIX+35,Y_FIX-8, "IV")
+        gui.text(X_FIX+50,Y_FIX-8, "EV")
+        gui.text(X_FIX+65,Y_FIX-8, "Nat")
 
         local speciesname=pokemontbl[species]
         if speciesname==nil then speciesname="none" end
 
-        gui.text(xfix,yfix-16, "CurHP: "..mword(start+86).."/"..mword(start+88), "yellow")
-        if status==2 then
-            gui.text(xfix,yfix-24, "Enemy "..substatus[2].." ("..speciesname..")")
-        elseif status==1 then
-            gui.text(xfix,yfix-24, "Player "..substatus[1].." ("..speciesname..")")
+        gui.text(X_FIX,Y_FIX-16, "CurHP: "..mword(start+86).."/"..mword(start+88), "yellow")
+        if viewmode==2 then
+            gui.text(X_FIX,Y_FIX-24, "Enemy "..substatus[2].." ("..speciesname..")")
+        elseif viewmode==1 then
+            gui.text(X_FIX,Y_FIX-24, "Player "..substatus[1].." ("..speciesname..")")
         end
 
-        gui.text(xfix,yfix+0,"HPT", "yellow")
-        gui.text(xfix,yfix+8,"ATK", "red")
-        gui.text(xfix,yfix+16,"DEF", "blue")
-        gui.text(xfix,yfix+24,"SPE", "green")
-        gui.text(xfix,yfix+32,"SAT", "magenta")
-        gui.text(xfix,yfix+40,"SDF", "cyan")
+        gui.text(X_FIX,Y_FIX+0,"HPT", "yellow")
+        gui.text(X_FIX,Y_FIX+8,"ATK", "red")
+        gui.text(X_FIX,Y_FIX+16,"DEF", "blue")
+        gui.text(X_FIX,Y_FIX+24,"SPE", "green")
+        gui.text(X_FIX,Y_FIX+32,"SAT", "magenta")
+        gui.text(X_FIX,Y_FIX+40,"SDF", "cyan")
 
-        gui.text(xfix+20,yfix, mword(start+88), "yellow")
-        gui.text(xfix+20,yfix+8, mword(start+90), "red")
-        gui.text(xfix+20,yfix+16, mword(start+92), "blue")
-        gui.text(xfix+20,yfix+24, mword(start+94), "green")
-        gui.text(xfix+20,yfix+32, mword(start+96), "magenta")
-        gui.text(xfix+20,yfix+40, mword(start+98), "cyan")
+        gui.text(X_FIX+20,Y_FIX, mword(start+88), "yellow")
+        gui.text(X_FIX+20,Y_FIX+8, mword(start+90), "red")
+        gui.text(X_FIX+20,Y_FIX+16, mword(start+92), "blue")
+        gui.text(X_FIX+20,Y_FIX+24, mword(start+94), "green")
+        gui.text(X_FIX+20,Y_FIX+32, mword(start+96), "magenta")
+        gui.text(X_FIX+20,Y_FIX+40, mword(start+98), "cyan")
 
-        gui.text(xfix+35,yfix, hpiv, "yellow")
-        gui.text(xfix+35,yfix+8, atkiv, "red")
-        gui.text(xfix+35,yfix+16, defiv, "blue")
-        gui.text(xfix+35,yfix+24, spdiv, "green")
-        gui.text(xfix+35,yfix+32, spatkiv, "magenta")
-        gui.text(xfix+35,yfix+40, spdefiv, "cyan")
+        gui.text(X_FIX+35,Y_FIX, hpiv, "yellow")
+        gui.text(X_FIX+35,Y_FIX+8, atkiv, "red")
+        gui.text(X_FIX+35,Y_FIX+16, defiv, "blue")
+        gui.text(X_FIX+35,Y_FIX+24, spdiv, "green")
+        gui.text(X_FIX+35,Y_FIX+32, spatkiv, "magenta")
+        gui.text(X_FIX+35,Y_FIX+40, spdefiv, "cyan")
 
-        gui.text(xfix+50,yfix, getbits(evs1, 0, 8), "yellow")
-        gui.text(xfix+50,yfix+8, getbits(evs1, 8, 8), "red")
-        gui.text(xfix+50,yfix+16, getbits(evs1, 16, 8), "blue")
-        gui.text(xfix+50,yfix+24, getbits(evs1, 24, 8), "green")
-        gui.text(xfix+50,yfix+32, getbits(evs2, 0, 8), "magenta")
-        gui.text(xfix+50,yfix+40, getbits(evs2, 8, 8), "cyan")
+        gui.text(X_FIX+50,Y_FIX, getbits(evs1, 0, 8), "yellow")
+        gui.text(X_FIX+50,Y_FIX+8, getbits(evs1, 8, 8), "red")
+        gui.text(X_FIX+50,Y_FIX+16, getbits(evs1, 16, 8), "blue")
+        gui.text(X_FIX+50,Y_FIX+24, getbits(evs1, 24, 8), "green")
+        gui.text(X_FIX+50,Y_FIX+32, getbits(evs2, 0, 8), "magenta")
+        gui.text(X_FIX+50,Y_FIX+40, getbits(evs2, 8, 8), "cyan")
 
         if natinc~=natdec then
-            gui.text(xfix+65,yfix+8*(natinc+1), "+", statcolor[natinc+2])
-            gui.text(xfix+65,yfix+8*(natdec+1), "-", statcolor[natdec+2])
+            gui.text(X_FIX+65,Y_FIX+8*(natinc+1), "+", STAT_COLOR[natinc+2])
+            gui.text(X_FIX+65,Y_FIX+8*(natdec+1), "-", STAT_COLOR[natdec+2])
         else
-            gui.text(xfix+65,yfix+8*(natinc+1), "+-", "grey")
+            gui.text(X_FIX+65,Y_FIX+8*(natinc+1), "+-", "grey")
         end
 
         -- gui.text(xfix2, yfix2,"Species "..species)
@@ -416,42 +413,42 @@ local function fn()
         local movename4=movetbl[move4]
         if movename4==nil then movename4="none" end
 
-        gui.text(xfix2, yfix2, "1: "..movename1)
-        gui.text(xfix2, yfix2+10, "2: "..movename2)
-        gui.text(xfix2, yfix2+20, "3: "..movename3)
-        gui.text(xfix2, yfix2+30, "4: "..movename4)
-        gui.text(xfix2+65, yfix2, "PP: "..pp1)
-        gui.text(xfix2+65, yfix2+10, "PP: "..pp2)
-        gui.text(xfix2+65, yfix2+20, "PP: "..pp3)
-        gui.text(xfix2+65, yfix2+30, "PP: "..pp4)
-        gui.text(xfix2, yfix2+40,"Hidden Power: "..typeorder[hidpowtype+1].." "..hidpowbase)
-        gui.text(xfix2, yfix2+50,"Hold Item "..holditem)
-        gui.text(xfix2, yfix2+60,"Pokerus Status "..pokerus)
-        gui.text(xfix2, yfix2+70, "Pokerus remain "..mbyte(start+85))
-    end --status 1 or 2
+        gui.text(X_FIX_2, Y_FIX_2, "1: "..movename1)
+        gui.text(X_FIX_2, Y_FIX_2+10, "2: "..movename2)
+        gui.text(X_FIX_2, Y_FIX_2+20, "3: "..movename3)
+        gui.text(X_FIX_2, Y_FIX_2+30, "4: "..movename4)
+        gui.text(X_FIX_2+65, Y_FIX_2, "PP: "..pp1)
+        gui.text(X_FIX_2+65, Y_FIX_2+10, "PP: "..pp2)
+        gui.text(X_FIX_2+65, Y_FIX_2+20, "PP: "..pp3)
+        gui.text(X_FIX_2+65, Y_FIX_2+30, "PP: "..pp4)
+        gui.text(X_FIX_2, Y_FIX_2+40,"Hidden Power: "..typeorder[hidpowtype+1].." "..hidpowbase)
+        gui.text(X_FIX_2, Y_FIX_2+50,"Hold Item "..holditem)
+        gui.text(X_FIX_2, Y_FIX_2+60,"Pokerus Status "..pokerus)
+        gui.text(X_FIX_2, Y_FIX_2+70, "Pokerus remain "..mbyte(start+85))
+    end
 
-    if status==3 then
-        local i=0
-        local cur=memory.readdword(rng[game])
-        test=last
-        while bit.tohex(cur)~=bit.tohex(test) and i<=100 do
-            test=mult32(test,0x41C64E6D) + 0x6073
-            i=i+1
+    if viewmode==VIEW_MODES.RNG then
+        local rng_steps=0
+        local curr_rng=memory.readdword(rng[game])
+        local next_rng=last_rng
+        while bit.tohex(curr_rng)~=bit.tohex(next_rng) and rng_steps<=100 do
+            next_rng=mult32(next_rng,0x41C64E6D) + 0x6073
+            rng_steps=rng_steps+1
         end
-        gui.text(120,20,"Last RNG value: "..bit.tohex(last))
-        last=cur
-        gui.text(120,0,"Current RNG value: "..bit.tohex(cur))
-        if i<=100 then
-            gui.text(120,10,"RNG distance since last: "..i)
+        gui.text(120,20,"Last RNG value: "..bit.tohex(last_rng))
+        last_rng=curr_rng
+        gui.text(120,0,"Current RNG value: "..bit.tohex(curr_rng))
+        if rng_steps<=100 then
+            gui.text(120,10,"RNG distance since last: "..rng_steps)
         else
             gui.text(120,10,"RNG distance since last: >100")
         end
 
         --math
-        local indexfind=startvalue
+        local indexfind=RNG_START
         local index=0
         for j=0,31 do
-            if getbits(cur,j,1)~=getbits(indexfind,j,1) then
+            if getbits(curr_rng,j,1)~=getbits(indexfind,j,1) then
                 indexfind=mult32(indexfind,multspa[j+1])+multspb[j+1]
                 index=index+bit.lshift(1,j)
                 if j==31 then
@@ -466,7 +463,7 @@ local function fn()
             modd = 2
         end
 
-        if i>modd and i<=100 then
+        if rng_steps>modd and rng_steps<=100 then
             gui.box(3,30,17,44, "red")
             gui.box(5,32,15,42, "black")
         end
@@ -483,7 +480,7 @@ local function fn()
         end
             
         drawarrow(3,52, "#FF0000FF")
-        local test=cur
+        local test=curr_rng
         -- i row j column
         for i=0,13 do
             for j=0,17 do
