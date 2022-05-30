@@ -219,6 +219,10 @@ local function mult32(a,b)
     return i
 end
 
+local function advance_rng(old_rng)
+    return mult32(old_rng, 0x41C64E6D) + 0x6073
+end
+
 --checksum stuff; add halves
 local function ah(a)
     local b=getbits(a,0,16)
@@ -432,7 +436,7 @@ local function fn()
         local curr_rng=memory.readdword(rng[game])
         local next_rng=last_rng
         while bit.tohex(curr_rng)~=bit.tohex(next_rng) and rng_steps<=100 do
-            next_rng=mult32(next_rng,0x41C64E6D) + 0x6073
+            next_rng=advance_rng(next_rng)
             rng_steps=rng_steps+1
         end
         gui.text(120,20,"Last RNG value: "..bit.tohex(last_rng))
@@ -480,7 +484,7 @@ local function fn()
         end
             
         drawarrow(3,52, "#FF0000FF")
-        local test=curr_rng
+        next_rng=curr_rng
         -- i row j column
         for i=0,13 do
             for j=0,17 do
@@ -488,12 +492,13 @@ local function fn()
                 if j%modd==1 then
                     clr="#C0C0C0FF"
                 end
-                local randvalue=gettop(test)
+                local randvalue=gettop(next_rng)
+                
                 if substatusremainder==1 then
                     if randvalue%16==0 then
-                        local test2=test
+                        local test2=next_rng
                         for _=1,7 do
-                            test2=mult32(test2,0x41C64E6D) + 0x6073
+                            test2=advance_rng(test2)
                         end
                         clr={r=255, g=0x10*(gettop(test2)%16), b=0, a=255}
                     end
@@ -514,7 +519,7 @@ local function fn()
                 
                 drawsquare(2+4*j,54+4*i, clr)
 
-                test=mult32(test,0x41C64E6D) + 0x6073
+                next_rng=advance_rng(next_rng)
             end
         end
     end
