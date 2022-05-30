@@ -314,13 +314,13 @@ local function fn()
         local misc2=bxr(mdword(start+32+miscoffset+4),magicword)
         local misc3=bxr(mdword(start+32+miscoffset+8),magicword)
 
-        local cs=ah(growth1)+ah(growth2)+ah(growth3)+ah(attack1)+ah(attack2)+ah(attack3)
+        local checksum=ah(growth1)+ah(growth2)+ah(growth3)+ah(attack1)+ah(attack2)+ah(attack3)
             +ah(effort1)+ah(effort2)+ah(effort3)+ah(misc1)+ah(misc2)+ah(misc3)
 
-        cs=cs%65536
+        checksum=checksum%65536
 
-        gui.text(0,10, mword(start+28))
-        gui.text(0,20, cs)
+        gui.text(0,10, string.format("%5d", mword(start+28)))
+        gui.text(0,20, string.format("%5d", checksum))
 
         local species=getbits(growth1,0,16)
 
@@ -348,22 +348,12 @@ local function fn()
         local natinc=math.floor(nature/5)
         local natdec=nature%5
 
-        local move1=getbits(attack1,0,16)
-        local move2=getbits(attack1,16,16)
-        local move3=getbits(attack2,0,16)
-        local move4=getbits(attack2,16,16)
-        local pp1=getbits(attack3,0,8)
-        local pp2=getbits(attack3,8,8)
-        local pp3=getbits(attack3,16,8)
-        local pp4=getbits(attack3,24,8)
-
         gui.text(X_FIX+15,Y_FIX-8, "Stat")
         gui.text(X_FIX+35,Y_FIX-8, "IV")
         gui.text(X_FIX+50,Y_FIX-8, "EV")
         gui.text(X_FIX+65,Y_FIX-8, "Nat")
 
-        local speciesname=pokemontbl[species]
-        if speciesname==nil then speciesname="none" end
+        local speciesname=pokemontbl[species] or "none"
 
         gui.text(X_FIX,Y_FIX-16, string.format("CurHP: %3d/%3d", mword(start+86), mword(start+88)), STAT_COLOR[1])
         gui.text(X_FIX,Y_FIX-24, string.format("%s %d %s", VIEW_MODE_NAMES[viewmode], substatus[viewmode], speciesname))
@@ -394,19 +384,15 @@ local function fn()
         -- gui.text(xfix2, yfix2+10,"Nature: "..naturename[nature+1])
         -- gui.text(xfix2, yfix2+20,natureorder[natinc+1].."+ "..natureorder[natdec+1].."-")
 
-        local movename1=movetbl[move1] or "none"
-        local movename2=movetbl[move2] or "none"
-        local movename3=movetbl[move3] or "none"
-        local movename4=movetbl[move4] or "none"
-
-        gui.text(X_FIX_2, Y_FIX_2, "1: "..movename1)
-        gui.text(X_FIX_2, Y_FIX_2+10, "2: "..movename2)
-        gui.text(X_FIX_2, Y_FIX_2+20, "3: "..movename3)
-        gui.text(X_FIX_2, Y_FIX_2+30, "4: "..movename4)
-        gui.text(X_FIX_2+65, Y_FIX_2, "PP: "..pp1)
-        gui.text(X_FIX_2+65, Y_FIX_2+10, "PP: "..pp2)
-        gui.text(X_FIX_2+65, Y_FIX_2+20, "PP: "..pp3)
-        gui.text(X_FIX_2+65, Y_FIX_2+30, "PP: "..pp4)
+        local movecodes = {
+            getbits(attack1,0,16),
+            getbits(attack1,16,16),
+            getbits(attack2,0,16),
+            getbits(attack2,16,16)
+        }
+        for i=1,4 do
+            gui.text(X_FIX_2, Y_FIX_2 + 10*(i-1), string.format("%d: %-12s PP: %2d", i, movetbl[movecodes[i]] or "none", getbits(attack3,8*(i-1),8)))
+        end
         gui.text(X_FIX_2, Y_FIX_2+40,"Hidden Power: "..typeorder[hidpowtype+1].." "..hidpowbase)
         gui.text(X_FIX_2, Y_FIX_2+50,"Hold Item "..holditem)
         gui.text(X_FIX_2, Y_FIX_2+60,"Pokerus Status "..pokerus)
