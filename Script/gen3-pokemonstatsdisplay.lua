@@ -1,4 +1,4 @@
-local VERSIONS <const> = {
+local VERSIONS = {
     "POKEMON RUBY",
     "POKEMON SAPP",
     "POKEMON FIRE",
@@ -6,7 +6,7 @@ local VERSIONS <const> = {
     "POKEMON EMER"
 }
 
-local LANGUAGES <const> = {
+local LANGUAGES = {
     "Unknown",
     "Deutsch",
     "French",
@@ -106,7 +106,7 @@ if vindex == 5 then  -- E
 	end
 end
 
-local RNG_START <const> =0x83ED --insert the first value of RNG
+local RNG_START =0x83ED --insert the first value of RNG
 
 -- These are all the possible key names: [keys]
 -- backspace, tab, enter, shift, control, alt, pause, capslock, escape,
@@ -117,7 +117,7 @@ local RNG_START <const> =0x83ED --insert the first value of RNG
 -- [/keys]
 -- Key names must be in quotes.
 -- Key names are case sensitive.
-local HOTKEYS <const> ={
+local HOTKEYS ={
     CHANGE_VIEW="9", 
     INCREMENT="8", 
     DECREMENT="7"
@@ -127,10 +127,15 @@ local HOTKEYS <const> ={
 
 --for different display modes
 local viewmode=1
-local VIEW_MODES <const> = {
+local VIEW_MODES = {
     PLAYER=1,
     ENEMY=2,
     RNG=3
+}
+local VIEW_MODE_NAMES = {
+    "Player",
+    "Enemy",
+    "RNG"
 }
 
 local substatus={1,1,1}
@@ -138,11 +143,11 @@ local substatus={1,1,1}
 local tabl={}
 local prev={}
 
-local X_FIX <const> =0 --x position of display handle
-local Y_FIX <const> =65 --y position of display handle
+local X_FIX =0 --x position of display handle
+local Y_FIX =65 --y position of display handle
 
-local X_FIX_2 <const> =105 --x position of 2nd handle
-local Y_FIX_2 <const> =0 --y position of 2nd handle
+local X_FIX_2 =105 --x position of 2nd handle
+local Y_FIX_2 =0 --y position of 2nd handle
 
 --for different game versions
 --1: Ruby/Sapphire U
@@ -165,7 +170,8 @@ local rng2  ={0x0000000, 0x0000000, 0x20386D0, 0x0000000, 0x0000000, 0x203861C, 
 
 
 --HP, Atk, Def, Spd, SpAtk, SpDef
-local STAT_COLOR <const> = {"yellow", "red", "blue", "green", "magenta", "cyan"}
+local STAT_DISPLAY = {"HP ", "ATK", "DEF", "SPD", "SAT", "SDF"}
+local STAT_COLOR = {"yellow", "red", "blue", "green", "magenta", "cyan"}
 
 dofile "tables.lua"
 
@@ -322,28 +328,25 @@ local function fn()
 
         local pokerus=getbits(misc1,0,8)
 
-        local ivs=misc2
-
         local evs1=effort1
         local evs2=effort2
 
-        local hpiv=getbits(ivs,0,5)
-        local atkiv=getbits(ivs,5,5)
-        local defiv=getbits(ivs,10,5)
-        local spdiv=getbits(ivs,15,5)
-        local spatkiv=getbits(ivs,20,5)
-        local spdefiv=getbits(ivs,25,5)
+        local ivs = {}
+        local hidpowtype = 0
+        local hidpowbase = 0
+        local multiplier = 1
+        for i = 1, 6 do
+            ivs[i] = getbits(misc2, 5*(i-1),5)
+            hidpowtype = hidpowtype + multiplier * (ivs[i]%2)
+            hidpowbase = hidpowbase + multiplier * getbits(ivs[i],1,1)
+            multiplier = multiplier * 2
+        end
+        hidpowtype=math.floor((hidpowtype*15)/63)
+        hidpowbase=math.floor((hidpowbase*40)/63 + 30)
 
         local nature=personality%25
         local natinc=math.floor(nature/5)
         local natdec=nature%5
-
-        local hidpowtype=math.floor(((hpiv%2 + 2*(atkiv%2) + 4*(defiv%2) + 8*(spdiv%2) + 16*(spatkiv%2) + 32*(spdefiv%2))*15)/63)
-        local hidpowbase=math.floor(((getbits(hpiv,1,1) + 2*getbits(atkiv,1,1) + 4*getbits(defiv,1,1) + 
-                                      8*getbits(spdiv,1,1) + 16*getbits(spatkiv,1,1) + 32*getbits(spdefiv,1,1)
-                                     )*40
-                                    )/63 + 30
-                                   )
 
         local move1=getbits(attack1,0,16)
         local move2=getbits(attack1,16,16)
@@ -362,40 +365,23 @@ local function fn()
         local speciesname=pokemontbl[species]
         if speciesname==nil then speciesname="none" end
 
-        gui.text(X_FIX,Y_FIX-16, "CurHP: "..mword(start+86).."/"..mword(start+88), "yellow")
-        if viewmode==2 then
-            gui.text(X_FIX,Y_FIX-24, "Enemy "..substatus[2].." ("..speciesname..")")
-        elseif viewmode==1 then
-            gui.text(X_FIX,Y_FIX-24, "Player "..substatus[1].." ("..speciesname..")")
+        gui.text(X_FIX,Y_FIX-16, string.format("CurHP: %3d/%3d", mword(start+86), mword(start+88)), STAT_COLOR[1])
+        gui.text(X_FIX,Y_FIX-24, string.format("%s %d %s", VIEW_MODE_NAMES[viewmode], substatus[viewmode], speciesname))
+
+        local evs = {
+            getbits(evs1, 0, 8),
+            getbits(evs1, 8, 8),
+            getbits(evs1, 16, 8),
+            getbits(evs1, 24, 8),
+            getbits(evs2, 0, 8),
+            getbits(evs2, 8, 8),
+        }
+        for i = 1, 6 do
+            gui.text(X_FIX,Y_FIX+8*(i-1), STAT_DISPLAY[i], STAT_COLOR[i])
+            gui.text(X_FIX+20,Y_FIX+8*(i-1), string.format("%3d", mword(start+88+2*(i-1))), STAT_COLOR[i])
+            gui.text(X_FIX+35,Y_FIX+8*(i-1), string.format("%2d", ivs[i]), STAT_COLOR[i])
+            gui.text(X_FIX+50,Y_FIX+8*(i-1), string.format("%3d", evs[i]), STAT_COLOR[i])
         end
-
-        gui.text(X_FIX,Y_FIX+0,"HPT", "yellow")
-        gui.text(X_FIX,Y_FIX+8,"ATK", "red")
-        gui.text(X_FIX,Y_FIX+16,"DEF", "blue")
-        gui.text(X_FIX,Y_FIX+24,"SPE", "green")
-        gui.text(X_FIX,Y_FIX+32,"SAT", "magenta")
-        gui.text(X_FIX,Y_FIX+40,"SDF", "cyan")
-
-        gui.text(X_FIX+20,Y_FIX, mword(start+88), "yellow")
-        gui.text(X_FIX+20,Y_FIX+8, mword(start+90), "red")
-        gui.text(X_FIX+20,Y_FIX+16, mword(start+92), "blue")
-        gui.text(X_FIX+20,Y_FIX+24, mword(start+94), "green")
-        gui.text(X_FIX+20,Y_FIX+32, mword(start+96), "magenta")
-        gui.text(X_FIX+20,Y_FIX+40, mword(start+98), "cyan")
-
-        gui.text(X_FIX+35,Y_FIX, hpiv, "yellow")
-        gui.text(X_FIX+35,Y_FIX+8, atkiv, "red")
-        gui.text(X_FIX+35,Y_FIX+16, defiv, "blue")
-        gui.text(X_FIX+35,Y_FIX+24, spdiv, "green")
-        gui.text(X_FIX+35,Y_FIX+32, spatkiv, "magenta")
-        gui.text(X_FIX+35,Y_FIX+40, spdefiv, "cyan")
-
-        gui.text(X_FIX+50,Y_FIX, getbits(evs1, 0, 8), "yellow")
-        gui.text(X_FIX+50,Y_FIX+8, getbits(evs1, 8, 8), "red")
-        gui.text(X_FIX+50,Y_FIX+16, getbits(evs1, 16, 8), "blue")
-        gui.text(X_FIX+50,Y_FIX+24, getbits(evs1, 24, 8), "green")
-        gui.text(X_FIX+50,Y_FIX+32, getbits(evs2, 0, 8), "magenta")
-        gui.text(X_FIX+50,Y_FIX+40, getbits(evs2, 8, 8), "cyan")
 
         if natinc~=natdec then
             gui.text(X_FIX+65,Y_FIX+8*(natinc+1), "+", STAT_COLOR[natinc+2])
@@ -408,14 +394,10 @@ local function fn()
         -- gui.text(xfix2, yfix2+10,"Nature: "..naturename[nature+1])
         -- gui.text(xfix2, yfix2+20,natureorder[natinc+1].."+ "..natureorder[natdec+1].."-")
 
-        local movename1=movetbl[move1]
-        if movename1==nil then movename1="none" end
-        local movename2=movetbl[move2]
-        if movename2==nil then movename2="none" end
-        local movename3=movetbl[move3]
-        if movename3==nil then movename3="none" end
-        local movename4=movetbl[move4]
-        if movename4==nil then movename4="none" end
+        local movename1=movetbl[move1] or "none"
+        local movename2=movetbl[move2] or "none"
+        local movename3=movetbl[move3] or "none"
+        local movename4=movetbl[move4] or "none"
 
         gui.text(X_FIX_2, Y_FIX_2, "1: "..movename1)
         gui.text(X_FIX_2, Y_FIX_2+10, "2: "..movename2)
@@ -493,7 +475,7 @@ local function fn()
                     clr="#C0C0C0FF"
                 end
                 local randvalue=gettop(next_rng)
-                
+
                 if substatusremainder==1 then
                     if randvalue%16==0 then
                         local test2=next_rng
