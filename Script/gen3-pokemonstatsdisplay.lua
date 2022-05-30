@@ -17,27 +17,20 @@ local languages = {
 }
 
 local function comparebytetostring(b, s)
-    local isequal = true
-    local blen = table.getn(b)
-    local slen = string.len(s)
-    local x,y
-    if blen ~= slen then
-        isequal = false
+    if #b ~= string.len(s) then
+        return false
     else
-        for i=1,blen do
-            x = b[i]
-            y = string.byte(s, i)
-            if(x~=y) then
-                isequal = false
-                break
+        for i, byte in ipairs(b) do
+            if(byte ~= string.byte(s, i)) then
+                return false
             end
         end
     end
-    return isequal
+    return true
 end
 
 local function checkversion(version)
-	for i,v in pairs(versions) do
+	for i,v in ipairs(versions) do
 		if comparebytetostring(version,v) then
 			return i
 		end
@@ -56,7 +49,6 @@ end
 print(string.format("Version: %s", versions[vindex]))
 local lan = memory.readbyte(0x080000AF)
 local lindex = 1
-local language
 
 if lan==0x44 then
 	lindex = 2
@@ -140,8 +132,6 @@ local yfix=65 --y position of display handle
 
 local xfix2=105 --x position of 2nd handle
 local yfix2=0 --y position of 2nd handle
-
-local k 
 
 --for different game versions
 --1: Ruby/Sapphire U
@@ -292,35 +282,34 @@ local function fn()
             start=estats[game]+100*(substatus[2]-1)
         end
 
-        personality=mdword(start)
-        trainerid=mdword(start+4)
-        magicword=bxr(personality, trainerid)
+        local personality=mdword(start)
+        local trainerid=mdword(start+4)
+        local magicword=bxr(personality, trainerid)
 
-        i=personality%24
+        local i=personality%24
 
-        growthoffset=(growthtbl[i+1]-1)*12
-        attackoffset=(attacktbl[i+1]-1)*12
-        effortoffset=(efforttbl[i+1]-1)*12
-        miscoffset=(misctbl[i+1]-1)*12
+        local growthoffset=(growthtbl[i+1]-1)*12
+        local attackoffset=(attacktbl[i+1]-1)*12
+        local effortoffset=(efforttbl[i+1]-1)*12
+        local miscoffset=(misctbl[i+1]-1)*12
 
+        local growth1=bxr(mdword(start+32+growthoffset),magicword)
+        local growth2=bxr(mdword(start+32+growthoffset+4),magicword)
+        local growth3=bxr(mdword(start+32+growthoffset+8),magicword)
 
-        growth1=bxr(mdword(start+32+growthoffset),magicword)
-        growth2=bxr(mdword(start+32+growthoffset+4),magicword)
-        growth3=bxr(mdword(start+32+growthoffset+8),magicword)
+        local attack1=bxr(mdword(start+32+attackoffset),magicword)
+        local attack2=bxr(mdword(start+32+attackoffset+4),magicword)
+        local attack3=bxr(mdword(start+32+attackoffset+8),magicword)
 
-        attack1=bxr(mdword(start+32+attackoffset),magicword)
-        attack2=bxr(mdword(start+32+attackoffset+4),magicword)
-        attack3=bxr(mdword(start+32+attackoffset+8),magicword)
+        local effort1=bxr(mdword(start+32+effortoffset),magicword)
+        local effort2=bxr(mdword(start+32+effortoffset+4),magicword)
+        local effort3=bxr(mdword(start+32+effortoffset+8),magicword)
 
-        effort1=bxr(mdword(start+32+effortoffset),magicword)
-        effort2=bxr(mdword(start+32+effortoffset+4),magicword)
-        effort3=bxr(mdword(start+32+effortoffset+8),magicword)
+        local misc1=bxr(mdword(start+32+miscoffset),magicword)
+        local misc2=bxr(mdword(start+32+miscoffset+4),magicword)
+        local misc3=bxr(mdword(start+32+miscoffset+8),magicword)
 
-        misc1=bxr(mdword(start+32+miscoffset),magicword)
-        misc2=bxr(mdword(start+32+miscoffset+4),magicword)
-        misc3=bxr(mdword(start+32+miscoffset+8),magicword)
-
-        cs=ah(growth1)+ah(growth2)+ah(growth3)+ah(attack1)+ah(attack2)+ah(attack3)
+        local cs=ah(growth1)+ah(growth2)+ah(growth3)+ah(attack1)+ah(attack2)+ah(attack3)
             +ah(effort1)+ah(effort2)+ah(effort3)+ah(misc1)+ah(misc2)+ah(misc3)
 
         cs=cs%65536
@@ -328,46 +317,46 @@ local function fn()
         gui.text(0,10, mword(start+28))
         gui.text(0,20, cs)
 
-        species=getbits(growth1,0,16)
+        local species=getbits(growth1,0,16)
 
-        holditem=getbits(growth1,16,16)
+        local holditem=getbits(growth1,16,16)
 
-        pokerus=getbits(misc1,0,8)
+        local pokerus=getbits(misc1,0,8)
 
-        ivs=misc2
+        local ivs=misc2
 
-        evs1=effort1
-        evs2=effort2
+        local evs1=effort1
+        local evs2=effort2
 
-        hpiv=getbits(ivs,0,5)
-        atkiv=getbits(ivs,5,5)
-        defiv=getbits(ivs,10,5)
-        spdiv=getbits(ivs,15,5)
-        spatkiv=getbits(ivs,20,5)
-        spdefiv=getbits(ivs,25,5)
+        local hpiv=getbits(ivs,0,5)
+        local atkiv=getbits(ivs,5,5)
+        local defiv=getbits(ivs,10,5)
+        local spdiv=getbits(ivs,15,5)
+        local spatkiv=getbits(ivs,20,5)
+        local spdefiv=getbits(ivs,25,5)
 
-        nature=personality%25
-        natinc=math.floor(nature/5)
-        natdec=nature%5
+        local nature=personality%25
+        local natinc=math.floor(nature/5)
+        local natdec=nature%5
 
-        hidpowtype=math.floor(((hpiv%2 + 2*(atkiv%2) + 4*(defiv%2) + 8*(spdiv%2) + 16*(spatkiv%2) + 32*(spdefiv%2))*15)/63)
-        hidpowbase=math.floor((( getbits(hpiv,1,1) + 2*getbits(atkiv,1,1) + 4*getbits(defiv,1,1) + 8*getbits(spdiv,1,1) + 16*getbits(spatkiv,1,1) + 32*getbits(spdefiv,1,1))*40)/63 + 30)
+        local hidpowtype=math.floor(((hpiv%2 + 2*(atkiv%2) + 4*(defiv%2) + 8*(spdiv%2) + 16*(spatkiv%2) + 32*(spdefiv%2))*15)/63)
+        local hidpowbase=math.floor((( getbits(hpiv,1,1) + 2*getbits(atkiv,1,1) + 4*getbits(defiv,1,1) + 8*getbits(spdiv,1,1) + 16*getbits(spatkiv,1,1) + 32*getbits(spdefiv,1,1))*40)/63 + 30)
 
-        move1=getbits(attack1,0,16)
-        move2=getbits(attack1,16,16)
-        move3=getbits(attack2,0,16)
-        move4=getbits(attack2,16,16)
-        pp1=getbits(attack3,0,8)
-        pp2=getbits(attack3,8,8)
-        pp3=getbits(attack3,16,8)
-        pp4=getbits(attack3,24,8)
+        local move1=getbits(attack1,0,16)
+        local move2=getbits(attack1,16,16)
+        local move3=getbits(attack2,0,16)
+        local move4=getbits(attack2,16,16)
+        local pp1=getbits(attack3,0,8)
+        local pp2=getbits(attack3,8,8)
+        local pp3=getbits(attack3,16,8)
+        local pp4=getbits(attack3,24,8)
 
         gui.text(xfix+15,yfix-8, "Stat")
         gui.text(xfix+35,yfix-8, "IV")
         gui.text(xfix+50,yfix-8, "EV")
         gui.text(xfix+65,yfix-8, "Nat")
 
-        speciesname=pokemontbl[species]
+        local speciesname=pokemontbl[species]
         if speciesname==nil then speciesname="none" end
 
         gui.text(xfix,yfix-16, "CurHP: "..mword(start+86).."/"..mword(start+88), "yellow")
@@ -411,34 +400,33 @@ local function fn()
         else
             gui.text(xfix+65,yfix+8*(natinc+1), "+-", "grey")
         end
+
+        -- gui.text(xfix2, yfix2,"Species "..species)
+        -- gui.text(xfix2, yfix2+10,"Nature: "..naturename[nature+1])
+        -- gui.text(xfix2, yfix2+20,natureorder[natinc+1].."+ "..natureorder[natdec+1].."-")
+
+        local movename1=movetbl[move1]
+        if movename1==nil then movename1="none" end
+        local movename2=movetbl[move2]
+        if movename2==nil then movename2="none" end
+        local movename3=movetbl[move3]
+        if movename3==nil then movename3="none" end
+        local movename4=movetbl[move4]
+        if movename4==nil then movename4="none" end
+
+        gui.text(xfix2, yfix2, "1: "..movename1)
+        gui.text(xfix2, yfix2+10, "2: "..movename2)
+        gui.text(xfix2, yfix2+20, "3: "..movename3)
+        gui.text(xfix2, yfix2+30, "4: "..movename4)
+        gui.text(xfix2+65, yfix2, "PP: "..pp1)
+        gui.text(xfix2+65, yfix2+10, "PP: "..pp2)
+        gui.text(xfix2+65, yfix2+20, "PP: "..pp3)
+        gui.text(xfix2+65, yfix2+30, "PP: "..pp4)
+        gui.text(xfix2, yfix2+40,"Hidden Power: "..typeorder[hidpowtype+1].." "..hidpowbase)
+        gui.text(xfix2, yfix2+50,"Hold Item "..holditem)
+        gui.text(xfix2, yfix2+60,"Pokerus Status "..pokerus)
+        gui.text(xfix2, yfix2+70, "Pokerus remain "..mbyte(start+85))
     end --status 1 or 2
-
-    -- gui.text(xfix2, yfix2,"Species "..species)
-    -- gui.text(xfix2, yfix2+10,"Nature: "..naturename[nature+1])
-    -- gui.text(xfix2, yfix2+20,natureorder[natinc+1].."+ "..natureorder[natdec+1].."-")
-
-    movename1=movetbl[move1]
-    if movename1==nil then movename1="none" end
-    movename2=movetbl[move2]
-    if movename2==nil then movename2="none" end
-    movename3=movetbl[move3]
-    if movename3==nil then movename3="none" end
-    movename4=movetbl[move4]
-    if movename4==nil then movename4="none" end
-
-    gui.text(xfix2, yfix2, "1: "..movename1)
-    gui.text(xfix2, yfix2+10, "2: "..movename2)
-    gui.text(xfix2, yfix2+20, "3: "..movename3)
-    gui.text(xfix2, yfix2+30, "4: "..movename4)
-    gui.text(xfix2+65, yfix2, "PP: "..pp1)
-    gui.text(xfix2+65, yfix2+10, "PP: "..pp2)
-    gui.text(xfix2+65, yfix2+20, "PP: "..pp3)
-    gui.text(xfix2+65, yfix2+30, "PP: "..pp4)
-    gui.text(xfix2, yfix2+40,"Hidden Power: "..typeorder[hidpowtype+1].." "..hidpowbase)
-    gui.text(xfix2, yfix2+50,"Hold Item "..holditem)
-    gui.text(xfix2, yfix2+60,"Pokerus Status "..pokerus)
-    gui.text(xfix2, yfix2+70, "Pokerus remain "..mbyte(start+85))
-
 
     if status==3 then
         local i=0
@@ -471,10 +459,9 @@ local function fn()
         end
         gui.text(120,30,index)
 
+        local modd = 3
         if substatus[3]>=5 and substatus[3]<=8 then
-            modd=2
-        else
-            modd=3
+            modd = 2
         end
 
         if i>modd and i<=100 then
@@ -482,11 +469,12 @@ local function fn()
             gui.box(5,32,15,42, "black")
         end
 
-        if substatus[3]%4==1 then
+        local substatusremainder = substatus[3]%4
+        if substatusremainder==1 then
             gui.text(10,45, "Critical Hit/Max Damage")
-        elseif substatus[3]%4==2 then
+        elseif substatusremainder==2 then
             gui.text(10,45, "Move Miss (95%)")
-        elseif substatus[3]%4==3 then
+        elseif substatusremainder==3 then
             gui.text(10,45, "Move Miss (90%)")
         else
             gui.text(10,45, "Quick Claw")
@@ -498,13 +486,12 @@ local function fn()
         -- i row j column
         for i=0,13,1 do
             for j=0,17,1 do
+                local clr="#808080FF"
                 if j%modd==1 then
                     clr="#C0C0C0FF"
-                else
-                    clr="#808080FF"
                 end
                 local randvalue=gettop(test)
-                if substatus[3]%4==1 then
+                if substatusremainder==1 then
                     if randvalue%16==0 then
                         local test2=test
                         for k=1,7,1 do
@@ -512,21 +499,15 @@ local function fn()
                         end
                         clr={r=255, g=0x10*(gettop(test2)%16), b=0, a=255}
                     end
-                end
-                
-                if substatus[3]%4==2 then
+                elseif substatusremainder==2 then
                     if randvalue%100>=95 then
                         clr="#0000FFFF"
                     end
-                end
-                    
-                if substatus[3]%4==3 then
+                elseif substatusremainder==3 then
                     if randvalue%100>=90 then
                         clr="#000080FF"
                     end
-                end
-
-                if substatus[3]%4==0 then
+                else
                     --if randvalue<0x3333 then
                     if randvalue%512==62 then
                         clr="#00FF00FF"
