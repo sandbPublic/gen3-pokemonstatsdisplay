@@ -167,9 +167,7 @@ local statcolor = {"yellow", "red", "blue", "green", "magenta", "cyan"}
 
 dofile "tables.lua"
 
-local flag=0
 local last=0
-local counter=0
 
 local bnd,br,bxr=bit.band,bit.bor,bit.bxor
 local rshift, lshift=bit.rshift, bit.lshift
@@ -340,7 +338,11 @@ local function fn()
         local natdec=nature%5
 
         local hidpowtype=math.floor(((hpiv%2 + 2*(atkiv%2) + 4*(defiv%2) + 8*(spdiv%2) + 16*(spatkiv%2) + 32*(spdefiv%2))*15)/63)
-        local hidpowbase=math.floor((( getbits(hpiv,1,1) + 2*getbits(atkiv,1,1) + 4*getbits(defiv,1,1) + 8*getbits(spdiv,1,1) + 16*getbits(spatkiv,1,1) + 32*getbits(spdefiv,1,1))*40)/63 + 30)
+        local hidpowbase=math.floor(((getbits(hpiv,1,1) + 2*getbits(atkiv,1,1) + 4*getbits(defiv,1,1) + 
+                                      8*getbits(spdiv,1,1) + 16*getbits(spatkiv,1,1) + 32*getbits(spdefiv,1,1)
+                                     )*40
+                                    )/63 + 30
+                                   )
 
         local move1=getbits(attack1,0,16)
         local move2=getbits(attack1,16,16)
@@ -448,7 +450,7 @@ local function fn()
         --math
         local indexfind=startvalue
         local index=0
-        for j=0,31,1 do
+        for j=0,31 do
             if getbits(cur,j,1)~=getbits(indexfind,j,1) then
                 indexfind=mult32(indexfind,multspa[j+1])+multspb[j+1]
                 index=index+bit.lshift(1,j)
@@ -480,12 +482,11 @@ local function fn()
             gui.text(10,45, "Quick Claw")
         end
             
-            
         drawarrow(3,52, "#FF0000FF")
         local test=cur
         -- i row j column
-        for i=0,13,1 do
-            for j=0,17,1 do
+        for i=0,13 do
+            for j=0,17 do
                 local clr="#808080FF"
                 if j%modd==1 then
                     clr="#C0C0C0FF"
@@ -494,7 +495,7 @@ local function fn()
                 if substatusremainder==1 then
                     if randvalue%16==0 then
                         local test2=test
-                        for k=1,7,1 do
+                        for _=1,7 do
                             test2=mult32(test2,0x41C64E6D) + 0x6073
                         end
                         clr={r=255, g=0x10*(gettop(test2)%16), b=0, a=255}
@@ -519,7 +520,6 @@ local function fn()
                 test=mult32(test,0x41C64E6D) + 0x6073
             end
         end
-
     end
 
     gui.text(0,0,emu.framecount())
